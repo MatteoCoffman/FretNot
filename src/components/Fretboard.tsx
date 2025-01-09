@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { Chord } from '@tonaljs/tonal';
 
 const Fretboard: React.FC = () => {
   const openStringNotes = ['E', 'B', 'G', 'D', 'A', 'E'];
   const [selectedFrets, setSelectedFrets] = useState<number[]>(Array(6).fill(-1));
   const [selectedNotes, setSelectedNotes] = useState<string[]>(Array(6).fill('X'));
+  const [possibleChords, setPossibleChords] = useState<string[]>([]);
 
   const handleFretClick = (stringIndex: number, fretIndex: number) => {
     const newSelectedFrets = [...selectedFrets];
@@ -32,6 +34,17 @@ const Fretboard: React.FC = () => {
       return getNoteName(stringIndex, fret);
     });
     setSelectedNotes(notes.reverse());
+
+    // Get unique notes (excluding muted strings 'X')
+    const uniqueNotes = Array.from(new Set(notes.filter(note => note !== 'X')));
+    
+    // Find possible chords
+    if (uniqueNotes.length > 0) {
+      const detected = Chord.detect(uniqueNotes);
+      setPossibleChords(detected);
+    } else {
+      setPossibleChords([]);
+    }
   }, [selectedFrets]);
 
   return (
@@ -72,9 +85,14 @@ const Fretboard: React.FC = () => {
           </div>
         ))}
       </div>
-      {/* Display selected notes */}
+      {/* Display selected notes and possible chords */}
       <div className="selected-notes">
         Selected Notes: {selectedNotes.join(', ')}
+      </div>
+      <div className="possible-chords">
+        Possible Chords: {possibleChords.length > 0 
+          ? possibleChords.join(', ') 
+          : 'No chord detected'}
       </div>
     </div>
   );
