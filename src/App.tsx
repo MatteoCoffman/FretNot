@@ -362,7 +362,7 @@ const detectedChords = useMemo(() => {
           score += 4;
         }
 
-        const intervalCount = chord.intervals?.length ?? 0;
+        const intervalCount = (chord.intervals ?? []).length;
         if (intervalCount >= 4) {
           score += 1;
         }
