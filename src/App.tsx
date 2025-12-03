@@ -56,10 +56,10 @@ type ChordFormula = {
 
 const intervalToSemitone = (interval: string) => {
   const semitones = Interval.semitones(interval);
-  if (Number.isFinite(semitones)) {
-    return ((semitones % 12) + 12) % 12;
+  if (typeof semitones !== "number") {
+    return null;
   }
-  return null;
+  return ((semitones % 12) + 12) % 12;
 };
 
 const CUSTOM_CHORD_LIBRARY: ChordFormula[] = [
@@ -226,23 +226,8 @@ function App() {
     });
   }, [selectedNotes]);
 
-  const lowestStringNote = useMemo(() => {
-    const lowestStringIndex = STRINGS.length - 1;
-    const fret = selectedFrets[lowestStringIndex];
-    if (fret === undefined || fret < 0) return null;
-    return {
-      note: getNoteName(lowestStringIndex, fret),
-      midi: (STRING_BASE_MIDI[lowestStringIndex] ?? 0) + fret,
-    };
-  }, [selectedFrets]);
-
   const uniqueNotes = useMemo(
     () => Array.from(new Set(selectedNotes.map((n) => n.note))),
-    [selectedNotes]
-  );
-
-  const uniqueMidiNotes = useMemo(
-    () => Array.from(new Set(selectedNotes.map((n) => n.midi))),
     [selectedNotes]
   );
 
@@ -377,7 +362,8 @@ const detectedChords = useMemo(() => {
           score += 4;
         }
 
-        if (chord.intervals.length >= 4) {
+        const intervalCount = chord.intervals?.length ?? 0;
+        if (intervalCount >= 4) {
           score += 1;
         }
 
