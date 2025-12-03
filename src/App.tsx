@@ -33,7 +33,13 @@ const STRING_BASE_MIDI = STRINGS.map(
 const FRET_COUNT = 15;
 const MARKER_FRETS = [3, 5, 7, 9, 12, 15];
 const ROOT_NOTES = NOTE_SEQUENCE;
-const CHORD_QUALITIES = [
+type ChordQuality = {
+  label: string;
+  id: string;
+  intervals: string[];
+};
+
+const CHORD_QUALITIES: ChordQuality[] = [
   { label: "Major", id: "maj", intervals: ["1P", "3M", "5P"] },
   { label: "Minor", id: "min", intervals: ["1P", "3m", "5P"] },
   { label: "Dominant 7", id: "7", intervals: ["1P", "3M", "5P", "7m"] },
@@ -43,9 +49,7 @@ const CHORD_QUALITIES = [
   { label: "Sus4", id: "sus4", intervals: ["1P", "4P", "5P"] },
   { label: "Diminished", id: "dim", intervals: ["1P", "3m", "5d"] },
   { label: "Augmented", id: "aug", intervals: ["1P", "3M", "5A"] },
-] as const;
-
-type ChordQuality = (typeof CHORD_QUALITIES)[number];
+];
 
 type ChordFormula = {
   name: string;
