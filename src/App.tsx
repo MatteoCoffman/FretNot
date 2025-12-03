@@ -353,7 +353,7 @@ const detectedChords = useMemo(() => {
     }));
     const combined = [...customCandidates, ...tonalCandidates];
 
-    return combined
+    const ranked = combined
       .map((candidate) => {
         const chord = Chord.get(candidate.symbol);
         const normalizedRoot = chord.tonic ? normalizeNote(chord.tonic) : null;
@@ -394,11 +394,21 @@ const detectedChords = useMemo(() => {
 
         return {
           label: candidate.label,
+          symbol: candidate.symbol,
           score,
         };
       })
       .sort((a, b) => b.score - a.score)
       .map((entry) => entry.label);
+
+    const deduped: string[] = [];
+    ranked.forEach((label) => {
+      if (!deduped.includes(label)) {
+        deduped.push(label);
+      }
+    });
+
+    return deduped;
   }, [uniqueNotes, lowestPitchNote, customCandidates]);
 
   const handleFretToggle = (stringIndex: number, fret: number) => {
