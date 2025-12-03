@@ -362,8 +362,9 @@ const detectedChords = useMemo(() => {
           score += 4;
         }
 
-        const intervalCount = Number(chord.intervals?.length ?? 0);
-        if (intervalCount >= 4) {
+        const hasExtendedStructure =
+          Array.isArray(chord.intervals) && chord.intervals.length >= 4;
+        if (hasExtendedStructure) {
           score += 1;
         }
 
