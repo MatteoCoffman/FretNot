@@ -95,6 +95,11 @@ const CHORD_QUALITIES: ChordQuality[] = [
     intervals: ["1P", "3m", "5P", "6M"],
   },
   {
+    label: "Minor ♭6",
+    id: "mb6",
+    intervals: ["1P", "3m", "5P", "6m"],
+  },
+  {
     label: "Half-diminished (m7b5)",
     id: "m7b5",
     intervals: ["1P", "3m", "5d", "7m"],
@@ -118,6 +123,7 @@ const QUALITY_ALIAS_MAP: Array<{ regex: RegExp; id: string }> = [
   { regex: /m9/i, id: "m9" },
   { regex: /m7/i, id: "m7" },
   { regex: /m6/i, id: "m6" },
+  { regex: /mb6|m♭6|mflat6/i, id: "mb6" },
   { regex: /(min|−)/i, id: "min" },
   { regex: /m/i, id: "min" },
   { regex: /13\(b9\)/i, id: "13" },
@@ -180,6 +186,12 @@ const CUSTOM_CHORD_LIBRARY: ChordFormula[] = [
     intervals: ["1P", "3m", "5P", "6M"],
     optional: ["5P"],
     aliases: ["m6"],
+  },
+  {
+    name: "mb6",
+    intervals: ["1P", "3m", "5P", "6m"],
+    optional: ["5P"],
+    aliases: ["mb6", "mb♭6", "mflat6"],
   },
   {
     name: "maj7",
@@ -413,26 +425,49 @@ function App() {
     });
   }, [selectedNotes]);
 
-  const uniqueNotes = useMemo(
-    () => Array.from(new Set(selectedNotes.map((n) => n.note))),
-    [selectedNotes]
-  );
+const uniqueNoteObjects = useMemo(() => {
+  const map = new Map<string, { midi: number | null; priority: number }>();
+  selectedNotes.forEach((note) => {
+    const existing = map.get(note.note);
+    const candidate = { midi: note.midi ?? null, priority: note.stringIndex };
+    if (
+      !existing ||
+      (candidate.midi ?? Infinity) < (existing.midi ?? Infinity) ||
+      candidate.priority > existing.priority
+    ) {
+      map.set(note.note, candidate);
+    }
+  });
+  return Array.from(map.entries()).map(([name, data]) => ({
+    name,
+    midi: data.midi,
+  }));
+}, [selectedNotes]);
 
-  const uniqueNoteObjects = useMemo(() => {
-    return uniqueNotes.map((note) => ({
-      name: note,
-      midi: selectedNotes.find((item) => item.note === note)?.midi ?? null,
-    }));
-  }, [uniqueNotes, selectedNotes]);
+const activeNotes = useMemo(
+  () =>
+    uniqueNoteObjects
+      .filter((item) => item.midi !== null)
+      .map((item) => item.name),
+  [uniqueNoteObjects]
+);
+
+const uniqueNotes = useMemo(
+  () => uniqueNoteObjects.map((item) => item.name),
+  [uniqueNoteObjects]
+);
 
   const computeIntervalsFromRoot = (rootNote: string) => {
+    const rootMidi =
+      selectedNotes.find((note) => note.note === rootNote)?.midi ??
+      (Note.midi(rootNote) ?? null);
+    if (rootMidi === null) return [];
+
     return uniqueNoteObjects
       .filter((item) => item.name !== rootNote)
       .map((item) => {
-        const rootMidi =
-          selectedNotes.find((note) => note.note === rootNote)?.midi ?? null;
         const targetMidi = item.midi;
-        if (rootMidi === null || targetMidi === null) {
+        if (targetMidi === null) {
           return {
             note: item.name,
             interval: Interval.distance(rootNote, item.name),
@@ -456,10 +491,10 @@ type CustomChordCandidate = {
 };
 
 const detectCustomChords = (): CustomChordCandidate[] => {
-    if (uniqueNotes.length < 2) return [];
+    if (activeNotes.length < 2) return [];
     const candidates: CustomChordCandidate[] = [];
 
-    uniqueNotes.forEach((rootCandidate) => {
+    activeNotes.forEach((rootCandidate) => {
       const normalizedRoot = normalizeNote(rootCandidate);
       const intervalsFromRoot = computeIntervalsFromRoot(normalizedRoot);
 
@@ -528,7 +563,7 @@ const detectCustomChords = (): CustomChordCandidate[] => {
   const customCandidates = detectCustomChords();
 
 const detectedChords = useMemo(() => {
-    if (uniqueNotes.length < 2) return [];
+    if (activeNotes.length < 2) return [];
     const tonalCandidates = Chord.detect(uniqueNotes).map((name) => ({
       label: name,
       symbol: name,
@@ -591,8 +626,48 @@ const detectedChords = useMemo(() => {
       }
     });
 
+    const heuristics = new Set<string>();
+    activeNotes.forEach((rootCandidate) => {
+      const normalizedRoot = normalizeNote(rootCandidate);
+      const intervals = computeIntervalsFromRoot(normalizedRoot);
+      const hasInterval = (targets: string[]) =>
+        intervals.some(
+          (entry) => entry.interval && targets.includes(entry.interval)
+        );
+      const hasMajorThird = hasInterval(["3M"]);
+      const hasMinorThird = hasInterval(["3m"]);
+      const hasMajorSeventh = hasInterval(["7M"]);
+      const hasMinorSeventh = hasInterval(["7m"]);
+      const hasSixth = hasInterval(["6M", "13M"]);
+      const hasFlatSix = hasInterval(["6m", "13m"]);
+
+      if (hasMajorThird && hasMajorSeventh) {
+        heuristics.add(`${normalizedRoot}maj7`);
+      } else if (hasMinorThird && hasMinorSeventh) {
+        heuristics.add(`${normalizedRoot}m7`);
+      } else if (hasMajorThird && hasMinorSeventh) {
+        heuristics.add(`${normalizedRoot}7`);
+      }
+
+      if (hasMajorThird && hasSixth && !hasMajorSeventh && !hasMinorSeventh) {
+        heuristics.add(`${normalizedRoot}maj6`);
+      }
+      if (hasMinorThird && hasSixth && !hasMajorSeventh && !hasMinorSeventh) {
+        heuristics.add(`${normalizedRoot}m6`);
+      }
+      if (hasMinorThird && hasFlatSix && !hasMajorSeventh && !hasMinorSeventh) {
+        heuristics.add(`${normalizedRoot}mb6`);
+      }
+    });
+
+    heuristics.forEach((label) => {
+      if (!deduped.includes(label)) {
+        deduped.push(label);
+      }
+    });
+
     return deduped;
-  }, [uniqueNotes, lowestPitchNote, customCandidates]);
+  }, [activeNotes, uniqueNotes, lowestPitchNote, customCandidates]);
 
   const hasAiKey = Boolean(import.meta.env.VITE_GEMINI_API_KEY);
 
@@ -984,7 +1059,7 @@ const applyChordToBoard = (notes: string[]) => {
             </div>
             {detectedChords.length === 0 ? (
               <p className="muted">
-                Need at least two unique notes to guess a chord.
+                No chord match yet—try adding another note or tweak the voicing.
               </p>
             ) : (
               <ul className="detected-list">
