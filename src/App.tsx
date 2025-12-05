@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { Chord, Interval, Note } from "@tonaljs/tonal";
 import "./App.css";
+import {
+  ChordSummary,
+  ProgressionSuggestion,
+  fetchChordInsight,
+  fetchPracticePrompt,
+  fetchProgressionSuggestions,
+} from "./services/aiCoach";
 
 const NOTE_SEQUENCE = [
   "C",
@@ -43,12 +50,92 @@ const CHORD_QUALITIES: ChordQuality[] = [
   { label: "Major", id: "maj", intervals: ["1P", "3M", "5P"] },
   { label: "Minor", id: "min", intervals: ["1P", "3m", "5P"] },
   { label: "Dominant 7", id: "7", intervals: ["1P", "3M", "5P", "7m"] },
+  { label: "Dominant 9", id: "9", intervals: ["1P", "3M", "5P", "7m", "9M"] },
+  {
+    label: "Dominant 13",
+    id: "13",
+    intervals: ["1P", "3M", "5P", "7m", "9M", "13M"],
+  },
+  {
+    label: "Dominant 7(b9)",
+    id: "7b9",
+    intervals: ["1P", "3M", "5P", "7m", "9m"],
+  },
   { label: "Major 7", id: "maj7", intervals: ["1P", "3M", "5P", "7M"] },
+  {
+    label: "Major 9",
+    id: "maj9",
+    intervals: ["1P", "3M", "5P", "7M", "9M"],
+  },
+  {
+    label: "Major 13",
+    id: "maj13",
+    intervals: ["1P", "3M", "5P", "7M", "9M", "13M"],
+  },
   { label: "Minor 7", id: "m7", intervals: ["1P", "3m", "5P", "7m"] },
+  {
+    label: "Minor 9",
+    id: "m9",
+    intervals: ["1P", "3m", "5P", "7m", "9M"],
+  },
+  {
+    label: "Minor 11",
+    id: "m11",
+    intervals: ["1P", "3m", "5P", "7m", "9M", "11P"],
+  },
+  {
+    label: "Minor 13",
+    id: "m13",
+    intervals: ["1P", "3m", "5P", "7m", "9M", "13M"],
+  },
+  {
+    label: "Minor 6",
+    id: "m6",
+    intervals: ["1P", "3m", "5P", "6M"],
+  },
+  {
+    label: "Half-diminished (m7b5)",
+    id: "m7b5",
+    intervals: ["1P", "3m", "5d", "7m"],
+  },
   { label: "Sus2", id: "sus2", intervals: ["1P", "2M", "5P"] },
   { label: "Sus4", id: "sus4", intervals: ["1P", "4P", "5P"] },
   { label: "Diminished", id: "dim", intervals: ["1P", "3m", "5d"] },
   { label: "Augmented", id: "aug", intervals: ["1P", "3M", "5A"] },
+];
+
+const QUALITY_ALIAS_MAP: Array<{ regex: RegExp; id: string }> = [
+  { regex: /maj13/i, id: "maj13" },
+  { regex: /maj9/i, id: "maj9" },
+  { regex: /maj7/i, id: "maj7" },
+  { regex: /(Δ|major)/i, id: "maj7" },
+  { regex: /maj/i, id: "maj" },
+  { regex: /m13/i, id: "m13" },
+  { regex: /m11/i, id: "m11" },
+  { regex: /m9/i, id: "m9" },
+  { regex: /m7/i, id: "m7" },
+  { regex: /m6/i, id: "m6" },
+  { regex: /(min|−)/i, id: "min" },
+  { regex: /m/i, id: "min" },
+  { regex: /13\(b9\)/i, id: "13" },
+  { regex: /13/i, id: "13" },
+  { regex: /b13/i, id: "13" },
+  { regex: /#11/i, id: "13" },
+  { regex: /add13/i, id: "13" },
+  { regex: /add11/i, id: "m11" },
+  { regex: /add9/i, id: "maj9" },
+  { regex: /7\(b9\)/i, id: "7b9" },
+  { regex: /b9/i, id: "7b9" },
+  { regex: /alt/i, id: "7" },
+  { regex: /9/i, id: "9" },
+  { regex: /7/i, id: "7" },
+  { regex: /m7b5|ø|half[-\s]?dim/i, id: "m7b5" },
+  { regex: /dim7|°7/i, id: "dim" },
+  { regex: /sus2/i, id: "sus2" },
+  { regex: /sus4/i, id: "sus4" },
+  { regex: /sus/i, id: "sus4" },
+  { regex: /dim/i, id: "dim" },
+  { regex: /aug/i, id: "aug" },
 ];
 
 type ChordFormula = {
@@ -176,6 +263,35 @@ const normalizeNote = (note: string) => {
   return normalized;
 };
 
+const extractChordToken = (symbol: string) =>
+  symbol.trim().split(/[\s(]+/)[0] ?? symbol.trim();
+
+const mapSymbolToQuality = (
+  symbol: string
+): { root?: string; quality?: ChordQuality } | null => {
+  const cleaned = extractChordToken(symbol);
+  const match = cleaned.match(/^([A-Ga-g](?:#|b)?)/);
+  if (!match) return null;
+  const rawRoot = match[1];
+  const normalizedRoot = normalizeNote(
+    rawRoot.length === 1
+      ? rawRoot.toUpperCase()
+      : rawRoot[0].toUpperCase() + rawRoot.slice(1)
+  );
+  const qualityToken = cleaned.slice(rawRoot.length).trim();
+  const alias = QUALITY_ALIAS_MAP.find(({ regex }) =>
+    regex.test(qualityToken)
+  );
+  const quality = alias
+    ? CHORD_QUALITIES.find((entry) => entry.id === alias.id)
+    : undefined;
+
+  return {
+    root: normalizedRoot,
+    quality,
+  };
+};
+
 const getNoteName = (stringIndex: number, fret: number) => {
   const openNote = STRINGS[stringIndex].label;
   const startIndex = NOTE_SEQUENCE.indexOf(openNote);
@@ -203,8 +319,26 @@ type SelectedNote = {
 function App() {
   const [selectedFrets, setSelectedFrets] = useState<number[]>(emptySelection);
   const [rootNote, setRootNote] = useState<string>("E");
-  const [chordQuality, setChordQuality] = useState<ChordQuality>(CHORD_QUALITIES[0]);
+  const [chordQuality, setChordQuality] = useState<ChordQuality>(
+    CHORD_QUALITIES[0]
+  );
   const [chordError, setChordError] = useState<string>("");
+  const [insight, setInsight] = useState<string>("");
+  const [insightTips, setInsightTips] = useState<string[]>([]);
+  const [insightState, setInsightState] = useState<
+    "idle" | "loading" | "error"
+  >("idle");
+  const [progression, setProgression] = useState<ChordSummary[]>([]);
+  const [progressionState, setProgressionState] = useState<
+    "idle" | "loading" | "error"
+  >("idle");
+  const [progressionSuggestions, setProgressionSuggestions] = useState<
+    ProgressionSuggestion[]
+  >([]);
+  const [practicePrompt, setPracticePrompt] = useState<string>("");
+  const [practiceState, setPracticeState] = useState<
+    "idle" | "loading" | "error"
+  >("idle");
 
   const selectedNotes: SelectedNote[] = useMemo(() => {
     return selectedFrets
@@ -411,6 +545,117 @@ const detectedChords = useMemo(() => {
     return deduped;
   }, [uniqueNotes, lowestPitchNote, customCandidates]);
 
+  const hasAiKey = Boolean(import.meta.env.VITE_GEMINI_API_KEY);
+
+  const buildChordSummary = (): ChordSummary | null => {
+    if (uniqueNotes.length === 0) return null;
+    return {
+      label: detectedChords[0]?.label ?? "Custom voicing",
+      notes: uniqueNotes,
+      frets: selectedNotes.map((selected) => ({
+        string: STRINGS[selected.stringIndex].label,
+        fret: selected.fret,
+      })),
+    };
+  };
+
+  const handleExplainChord = async () => {
+    const summary = buildChordSummary();
+    if (!summary || !hasAiKey) return;
+    setInsightState("loading");
+    setInsight("");
+    try {
+      const payload = await fetchChordInsight(summary);
+      setInsight(payload.insight);
+      setInsightTips(payload.tips ?? []);
+      setInsightState("idle");
+    } catch (error) {
+      setInsightState("error");
+      setInsight(
+        error instanceof Error ? error.message : "Something went sideways."
+      );
+    }
+  };
+
+  const handleAddProgression = () => {
+    const summary = buildChordSummary();
+    if (!summary) return;
+    setProgression((prev) => {
+      const next = [...prev, summary];
+      return next.slice(-4);
+    });
+  };
+
+  const handleClearProgression = () => {
+    setProgression([]);
+    setProgressionSuggestions([]);
+  };
+
+  const handleSuggestNext = async () => {
+    if (progression.length === 0 || !hasAiKey) return;
+    setProgressionState("loading");
+    try {
+      const suggestions = await fetchProgressionSuggestions(progression);
+      setProgressionSuggestions(suggestions);
+      setProgressionState("idle");
+    } catch (error) {
+      setProgressionState("error");
+      setProgressionSuggestions([
+        {
+          name: "Oops",
+          reason:
+            error instanceof Error
+              ? error.message
+              : "AI suggestion failed unexpectedly.",
+        },
+      ]);
+    }
+  };
+
+  const handlePracticeIdea = async () => {
+    const summary = buildChordSummary();
+    if (!summary || !hasAiKey) return;
+    setPracticeState("loading");
+    try {
+      const prompt = await fetchPracticePrompt(summary);
+      setPracticePrompt(prompt);
+      setPracticeState("idle");
+    } catch (error) {
+      setPracticeState("error");
+      setPracticePrompt(
+        error instanceof Error ? error.message : "Practice prompt failed."
+      );
+    }
+  };
+
+  const handlePlotSuggestedChord = (symbol: string) => {
+    const cleaned = extractChordToken(symbol);
+    let chord = Chord.get(cleaned);
+    const mapped = mapSymbolToQuality(symbol);
+    let chordNotes = chord.exists ? chord.notes : [];
+
+    if (chordNotes.length === 0 && mapped?.root && mapped?.quality) {
+      const generated = mapped.quality.intervals.map((interval) =>
+        normalizeNote(Note.transpose(mapped.root!, interval))
+      );
+      chordNotes = generated;
+    }
+
+    if (chordNotes.length === 0) {
+      setChordError(`Couldn't plot ${symbol}`);
+      return;
+    }
+
+    if (mapped?.root) {
+      setRootNote(mapped.root);
+    }
+    if (mapped?.quality) {
+      setChordQuality(mapped.quality);
+    }
+    setChordError("");
+    applyChordToBoard(chordNotes.map((note) => normalizeNote(note)));
+  };
+
   const handleFretToggle = (stringIndex: number, fret: number) => {
     setSelectedFrets((prev) =>
       prev.map((current, idx) => {
@@ -538,7 +783,132 @@ const applyChordToBoard = (notes: string[]) => {
         </section>
 
         <aside className="control-panel">
-          <section className="panel-block">
+        <section className="panel-block ai-block">
+          <div className="ai-header">
+            <div>
+              <h2>AI coach</h2>
+              {!hasAiKey && (
+                <p className="muted">
+                  Add <code>VITE_GEMINI_API_KEY</code> to enable suggestions.
+                </p>
+              )}
+            </div>
+            <div className="ai-actions">
+              <button
+                className="ai-btn"
+                onClick={handleExplainChord}
+                disabled={!hasAiKey || uniqueNotes.length === 0}
+              >
+                Explain chord
+              </button>
+              <button
+                className="ai-btn ghost"
+                onClick={handleAddProgression}
+                disabled={uniqueNotes.length === 0}
+              >
+                Add to progression
+              </button>
+              <button
+                className="ai-btn ghost"
+                onClick={handlePracticeIdea}
+                disabled={!hasAiKey || uniqueNotes.length === 0}
+              >
+                Practice idea
+              </button>
+            </div>
+          </div>
+
+          <div className="ai-card">
+            <h3>Chord insight</h3>
+            {insightState === "loading" ? (
+              <p className="muted">Thinking about this voicing…</p>
+            ) : insight ? (
+              <>
+                <p>{insight}</p>
+                {insightTips.length > 0 && (
+                  <ul className="tip-list">
+                    {insightTips.map((tip) => (
+                      <li key={tip}>{tip}</li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            ) : (
+              <p className="muted">
+                Tap “Explain chord” to get an AI breakdown.
+              </p>
+            )}
+          </div>
+
+          <div className="progression-panel">
+            <div className="progression-header">
+              <div>
+                <h3>Progression</h3>
+                <p className="muted">
+                  {progression.length === 0
+                    ? "Add chords as you explore the board."
+                    : "Up to four chords saved at a time."}
+                </p>
+              </div>
+              {progression.length > 0 && (
+                <button className="link-button" onClick={handleClearProgression}>
+                  Clear
+                </button>
+              )}
+            </div>
+            <div className="progression-chips">
+              {progression.map((chord, idx) => (
+                <span key={`${chord.label}-${idx}`} className="chip">
+                  {idx + 1}. {chord.label}
+                </span>
+              ))}
+            </div>
+            <button
+              className="ai-btn"
+              onClick={handleSuggestNext}
+              disabled={!hasAiKey || progression.length === 0}
+            >
+              Suggest next chords
+            </button>
+            <div className="ai-card suggestions">
+              {progressionState === "loading" ? (
+                <p className="muted">Mapping options…</p>
+              ) : progressionSuggestions.length > 0 ? (
+                progressionSuggestions.map((suggestion, idx) => (
+                  <div key={idx} className="suggestion">
+                    <strong>{suggestion.name}</strong>
+                    <p>{suggestion.reason}</p>
+                    <button
+                      className="link-button"
+                      onClick={() => handlePlotSuggestedChord(suggestion.name)}
+                    >
+                      Plot this chord
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <p className="muted">
+                  Once you have chords in the queue, AI will pitch follow-ups.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="ai-card">
+            <h3>Practice idea</h3>
+            {practiceState === "loading" ? (
+              <p className="muted">Sketching an exercise…</p>
+            ) : practicePrompt ? (
+              <p>{practicePrompt}</p>
+            ) : (
+              <p className="muted">
+                Ask for a practice idea to get tempo + technique guidance.
+              </p>
+            )}
+          </div>
+        </section>
+
+        <section className="panel-block">
             <h2>Selected notes</h2>
             {selectedNotes.length === 0 ? (
               <p className="muted">No notes yet. Start tapping the fretboard.</p>
