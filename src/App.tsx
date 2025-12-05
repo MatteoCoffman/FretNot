@@ -62,6 +62,7 @@ const CHORD_QUALITIES: ChordQuality[] = [
     intervals: ["1P", "3M", "5P", "7m", "9m"],
   },
   { label: "Major 7", id: "maj7", intervals: ["1P", "3M", "5P", "7M"] },
+  { label: "Major 6", id: "maj6", intervals: ["1P", "3M", "5P", "6M"] },
   {
     label: "Major 9",
     id: "maj9",
@@ -108,7 +109,9 @@ const QUALITY_ALIAS_MAP: Array<{ regex: RegExp; id: string }> = [
   { regex: /maj13/i, id: "maj13" },
   { regex: /maj9/i, id: "maj9" },
   { regex: /maj7/i, id: "maj7" },
+  { regex: /maj6|M6|6(?=$|\s|\/)/i, id: "maj6" },
   { regex: /(Δ|major)/i, id: "maj7" },
+  { regex: /^M$/i, id: "maj" },
   { regex: /maj/i, id: "maj" },
   { regex: /m13/i, id: "m13" },
   { regex: /m11/i, id: "m11" },
@@ -161,10 +164,22 @@ const CUSTOM_CHORD_LIBRARY: ChordFormula[] = [
     aliases: ["M"],
   },
   {
+    name: "maj6",
+    intervals: ["1P", "3M", "5P", "6M"],
+    optional: ["5P"],
+    aliases: ["maj6", "M6", "6"],
+  },
+  {
     name: "minor",
     intervals: ["1P", "3m", "5P"],
     optional: [],
     aliases: ["m"],
+  },
+  {
+    name: "m6",
+    intervals: ["1P", "3m", "5P", "6M"],
+    optional: ["5P"],
+    aliases: ["m6"],
   },
   {
     name: "maj7",
@@ -290,6 +305,40 @@ const mapSymbolToQuality = (
     root: normalizedRoot,
     quality,
   };
+};
+
+const enrichChordLabel = (
+  root: string | null,
+  baseLabel: string,
+  intervals: { interval: string }[]
+) => {
+  if (!root) return baseLabel;
+  const hasInterval = (targets: string[]) =>
+    intervals.some((entry) => entry.interval && targets.includes(entry.interval));
+  const hasMajorThird = hasInterval(["3M"]);
+  const hasMinorThird = hasInterval(["3m"]);
+  const hasSix = hasInterval(["6M", "13M"]);
+
+  const lower = baseLabel.toLowerCase();
+  if (
+    hasMajorThird &&
+    hasSix &&
+    !lower.includes("6") &&
+    !lower.includes("13")
+  ) {
+    return `${root}maj6`;
+  }
+
+  if (
+    hasMinorThird &&
+    hasSix &&
+    !lower.includes("6") &&
+    !lower.includes("13")
+  ) {
+    return `${root}m6`;
+  }
+
+  return baseLabel;
 };
 
 const getNoteName = (stringIndex: number, fret: number) => {
@@ -527,7 +576,7 @@ const detectedChords = useMemo(() => {
         score += candidate.completionScore ?? 0;
 
         return {
-          label: candidate.label,
+          label: enrichChordLabel(normalizedRoot, candidate.label, intervalsFromRoot),
           symbol: candidate.symbol,
           score,
         };
