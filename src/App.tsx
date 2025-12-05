@@ -550,7 +550,7 @@ const detectedChords = useMemo(() => {
   const buildChordSummary = (): ChordSummary | null => {
     if (uniqueNotes.length === 0) return null;
     return {
-      label: detectedChords[0]?.label ?? "Custom voicing",
+      label: detectedChords[0] ?? "Custom voicing",
       notes: uniqueNotes,
       frets: selectedNotes.map((selected) => ({
         string: STRINGS[selected.stringIndex].label,
@@ -630,9 +630,9 @@ const detectedChords = useMemo(() => {
 
   const handlePlotSuggestedChord = (symbol: string) => {
     const cleaned = extractChordToken(symbol);
-    let chord = Chord.get(cleaned);
+    const chord = Chord.get(cleaned);
     const mapped = mapSymbolToQuality(symbol);
-    let chordNotes = chord.exists ? chord.notes : [];
+    let chordNotes = chord.notes ?? [];
 
     if (chordNotes.length === 0 && mapped?.root && mapped?.quality) {
       const generated = mapped.quality.intervals.map((interval) =>
