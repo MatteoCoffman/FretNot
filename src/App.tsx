@@ -669,7 +669,7 @@ const detectedChords = useMemo(() => {
     return deduped;
   }, [activeNotes, uniqueNotes, lowestPitchNote, customCandidates]);
 
-  const hasAiKey = Boolean(import.meta.env.VITE_GEMINI_API_KEY);
+  const hasAiKey = import.meta.env.VITE_AI_DISABLED !== "true";
 
   const buildChordSummary = (): ChordSummary | null => {
     if (uniqueNotes.length === 0) return null;
@@ -911,11 +911,12 @@ const applyChordToBoard = (notes: string[]) => {
           <div className="ai-header">
             <div>
               <h2>AI coach</h2>
-              {!hasAiKey && (
-                <p className="muted">
-                  Add <code>VITE_GEMINI_API_KEY</code> to enable suggestions.
-                </p>
-              )}
+                {!hasAiKey && (
+                  <p className="muted">
+                    Configure a server-side <code>GEMINI_API_KEY</code> to enable
+                    suggestions.
+                  </p>
+                )}
             </div>
             <div className="ai-actions">
               <button
