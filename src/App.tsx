@@ -8,6 +8,7 @@ import {
   fetchPracticePrompt,
   fetchProgressionSuggestions,
 } from "./services/aiCoach";
+import { AI_UNAVAILABLE_MESSAGE } from "./lib/gemini";
 
 const NOTE_SEQUENCE = [
   "C",
@@ -696,7 +697,7 @@ const detectedChords = useMemo(() => {
     } catch (error) {
       setInsightState("error");
       setInsight(
-        error instanceof Error ? error.message : "Something went sideways."
+        error instanceof Error ? error.message : AI_UNAVAILABLE_MESSAGE
       );
     }
   };
@@ -726,11 +727,11 @@ const detectedChords = useMemo(() => {
       setProgressionState("error");
       setProgressionSuggestions([
         {
-          name: "Oops",
+          name: "AI suggestions",
           reason:
             error instanceof Error
               ? error.message
-              : "AI suggestion failed unexpectedly.",
+              : AI_UNAVAILABLE_MESSAGE,
         },
       ]);
     }
@@ -747,7 +748,7 @@ const detectedChords = useMemo(() => {
     } catch (error) {
       setPracticeState("error");
       setPracticePrompt(
-        error instanceof Error ? error.message : "Practice prompt failed."
+        error instanceof Error ? error.message : AI_UNAVAILABLE_MESSAGE
       );
     }
   };
@@ -949,7 +950,9 @@ const applyChordToBoard = (notes: string[]) => {
               <p className="muted">Thinking about this voicing…</p>
             ) : insight ? (
               <>
-                <p>{insight}</p>
+                <p className={insightState === "error" ? "muted" : undefined}>
+                  {insight}
+                </p>
                 {insightTips.length > 0 && (
                   <ul className="tip-list">
                     {insightTips.map((tip) => (
@@ -1001,14 +1004,20 @@ const applyChordToBoard = (notes: string[]) => {
               ) : progressionSuggestions.length > 0 ? (
                 progressionSuggestions.map((suggestion, idx) => (
                   <div key={idx} className="suggestion">
-                    <strong>{suggestion.name}</strong>
-                    <p>{suggestion.reason}</p>
-                    <button
-                      className="link-button"
-                      onClick={() => handlePlotSuggestedChord(suggestion.name)}
-                    >
-                      Plot this chord
-                    </button>
+                    {progressionState !== "error" && (
+                      <strong>{suggestion.name}</strong>
+                    )}
+                    <p className={progressionState === "error" ? "muted" : undefined}>
+                      {suggestion.reason}
+                    </p>
+                    {progressionState !== "error" && (
+                      <button
+                        className="link-button"
+                        onClick={() => handlePlotSuggestedChord(suggestion.name)}
+                      >
+                        Plot this chord
+                      </button>
+                    )}
                   </div>
                 ))
               ) : (
@@ -1024,7 +1033,9 @@ const applyChordToBoard = (notes: string[]) => {
             {practiceState === "loading" ? (
               <p className="muted">Sketching an exercise…</p>
             ) : practicePrompt ? (
-              <p>{practicePrompt}</p>
+              <p className={practiceState === "error" ? "muted" : undefined}>
+                {practicePrompt}
+              </p>
             ) : (
               <p className="muted">
                 Ask for a practice idea to get tempo + technique guidance.

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-const DEFAULT_MODEL = "gemini-3.0-pro-preview";
+const DEFAULT_MODEL = "gemini-3.5-flash";
 const ALLOWED_ORIGIN = process.env.CORS_ORIGIN ?? "*";
 
 function applyCors(res: VercelResponse) {
@@ -38,7 +38,7 @@ export default async function handler(
     return res.status(400).json({ error: "Missing prompt" });
   }
 
-  const model = process.env.GEMINI_MODEL ?? DEFAULT_MODEL;
+  const model = DEFAULT_MODEL;
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const upstream = await fetch(endpoint, {
@@ -52,9 +52,27 @@ export default async function handler(
 
   if (!upstream.ok) {
     const message = await upstream.text();
-    return res
-      .status(upstream.status)
-      .send(message || "Gemini request failed.");
+    let detail = message || "Gemini request failed.";
+    try {
+      const parsed = JSON.parse(message) as {
+        error?: { message?: string; status?: string };
+      };
+      if (parsed.error?.message) {
+        detail = parsed.error.message;
+      }
+    } catch {
+      // keep raw text
+    }
+    return res.status(upstream.status).json({
+      error: detail,
+      model,
+      hint:
+        upstream.status === 404
+          ? "Model not found — check GEMINI_MODEL or use gemini-3.5-flash."
+          : upstream.status === 429
+            ? "Quota or rate limit exceeded"
+            : undefined,
+    });
   }
 
   const data = await upstream.json();
