@@ -11,6 +11,15 @@ import {
 import { AI_UNAVAILABLE_MESSAGE } from "./lib/gemini";
 import { formatSlashLabel } from "./lib/chordDetection";
 import {
+  buildChordToneRoleMap,
+  getRoleForNote,
+  legendRolesForMap,
+  TONE_ROLE_LABELS,
+  TONE_ROLE_SHORT_LABELS,
+  toneRoleClassName,
+  toneRoleTextClassName,
+} from "./lib/chordToneRoles";
+import {
   NO_PLAYABLE_VOICING_MSG,
   emptySelection,
   findPlayableVoicings,
@@ -695,6 +704,19 @@ const detectedChords = useMemo(() => {
     return deduped;
   }, [activeNotes, uniqueNotes, lowestPitchNote, customCandidates]);
 
+  const chordToneRoles = useMemo(() => {
+    const primarySymbol = voicingAnchor?.symbol ?? detectedChords[0] ?? null;
+    if (!primarySymbol) return new Map();
+    return buildChordToneRoleMap(primarySymbol);
+  }, [voicingAnchor, detectedChords]);
+
+  const toneLegendRoles = useMemo(
+    () => legendRolesForMap(chordToneRoles),
+    [chordToneRoles]
+  );
+
+  const showStringRoles = chordToneRoles.size > 0;
+
   const hasAiKey = import.meta.env.VITE_AI_DISABLED !== "true";
 
   const alternateVoicings = useMemo(() => {
@@ -908,59 +930,112 @@ const detectedChords = useMemo(() => {
       <div className="workspace">
         <section className="fretboard-card">
           <div className="fretboard-scroll">
-            <div className="fretboard">
-              {STRINGS.map((stringMeta, stringIdx) => (
-                <div key={stringMeta.id} className="string-row">
-                  {Array.from({ length: FRET_COUNT + 1 }).map((_, fretIdx) => {
-                    const isSelected = selectedFrets[stringIdx] === fretIdx;
-                    const noteLabel = isSelected
-                      ? getNoteName(stringIdx, fretIdx)
-                      : null;
-                    const fretClassNames = [
-                      "fret",
-                      fretIdx === 0 ? "nut" : "",
-                      isSelected ? "selected" : "",
-                    ]
-                      .filter(Boolean)
-                      .join(" ");
+            <div
+              className={`fretboard-layout${
+                showStringRoles ? " fretboard-layout--with-roles" : ""
+              }`}
+            >
+              <div className="fretboard">
+                {STRINGS.map((stringMeta, stringIdx) => (
+                  <div key={stringMeta.id} className="string-row">
+                    {Array.from({ length: FRET_COUNT + 1 }).map((_, fretIdx) => {
+                      const isSelected = selectedFrets[stringIdx] === fretIdx;
+                      const noteLabel = isSelected
+                        ? getNoteName(stringIdx, fretIdx)
+                        : null;
+                      const toneRole = noteLabel
+                        ? getRoleForNote(chordToneRoles, noteLabel)
+                        : undefined;
+                      const fretClassNames = [
+                        "fret",
+                        fretIdx === 0 ? "nut" : "",
+                        isSelected ? "selected" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ");
 
-                    return (
-                      <button
-                        key={`${stringMeta.id}-${fretIdx}`}
-                        type="button"
-                        className={fretClassNames}
-                        aria-pressed={isSelected}
-                        aria-label={`${stringMeta.label} string, fret ${fretIdx}${
-                          noteLabel ? `, ${noteLabel}` : ", muted"
-                        }`}
-                        onClick={() => handleFretToggle(stringIdx, fretIdx)}
-                      >
-                        {fretIdx === 0 && (
-                          <span className="string-label">{stringMeta.label}</span>
-                        )}
-                        {isSelected && (
-                          <span className="note-dot">
-                            <span className="note-label">{noteLabel}</span>
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
-              <div className="fret-markers-row">
-                {Array.from({ length: FRET_COUNT + 1 }).map((_, fretIdx) => (
-                  <div key={`marker-${fretIdx}`} className="marker-slot">
-                    {MARKER_FRETS.includes(fretIdx) && (
-                      <span
-                        className={`marker-dot ${
-                          fretIdx === 12 ? "double" : ""
-                        }`}
-                      />
-                    )}
+                      return (
+                        <button
+                          key={`${stringMeta.id}-${fretIdx}`}
+                          type="button"
+                          className={fretClassNames}
+                          aria-pressed={isSelected}
+                          aria-label={`${stringMeta.label} string, fret ${fretIdx}${
+                            noteLabel ? `, ${noteLabel}` : ", muted"
+                          }`}
+                          onClick={() => handleFretToggle(stringIdx, fretIdx)}
+                        >
+                          {fretIdx === 0 && !isSelected && (
+                            <span className="string-label">
+                              {stringMeta.label}
+                            </span>
+                          )}
+                          {isSelected && (
+                            <span
+                              className={
+                                toneRole
+                                  ? `note-dot ${toneRoleClassName(toneRole)}`
+                                  : "note-dot"
+                              }
+                            >
+                              <span className="note-label">{noteLabel}</span>
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 ))}
+                <div className="fret-markers-row">
+                  {Array.from({ length: FRET_COUNT + 1 }).map((_, fretIdx) => (
+                    <div key={`marker-${fretIdx}`} className="marker-slot">
+                      {MARKER_FRETS.includes(fretIdx) && (
+                        <span
+                          className={`marker-dot ${
+                            fretIdx === 12 ? "double" : ""
+                          }`}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
+              {showStringRoles && (
+                <aside
+                  className="string-roles-rail"
+                  aria-label="String tone roles"
+                >
+                  {STRINGS.map((stringMeta, stringIdx) => {
+                    const selectedFret = selectedFrets[stringIdx];
+                    const stringNoteLabel =
+                      selectedFret >= 0
+                        ? getNoteName(stringIdx, selectedFret)
+                        : null;
+                    const stringRole = stringNoteLabel
+                      ? getRoleForNote(chordToneRoles, stringNoteLabel)
+                      : undefined;
+
+                    return (
+                      <div
+                        key={`role-${stringMeta.id}`}
+                        className={`string-role-label${
+                          stringRole
+                            ? ` ${toneRoleTextClassName(stringRole)}`
+                            : ""
+                        }`}
+                        aria-label={
+                          stringRole
+                            ? `${stringMeta.label} string: ${TONE_ROLE_LABELS[stringRole]}`
+                            : undefined
+                        }
+                      >
+                        {stringRole ? TONE_ROLE_SHORT_LABELS[stringRole] : ""}
+                      </div>
+                    );
+                  })}
+                  <div className="string-roles-rail-spacer" aria-hidden="true" />
+                </aside>
+              )}
             </div>
           </div>
 
@@ -1029,6 +1104,21 @@ const detectedChords = useMemo(() => {
                 >
                   Alternate fingering
                 </button>
+                {toneLegendRoles.length > 0 && (
+                  <ul className="tone-legend" aria-label="Chord tone colors">
+                    {toneLegendRoles.map((role) => (
+                      <li key={role} className="tone-legend-item">
+                        <span
+                          className={`tone-legend-swatch ${toneRoleClassName(role)}`}
+                          aria-hidden="true"
+                        />
+                        <span className="tone-legend-label">
+                          {TONE_ROLE_LABELS[role]}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </>
             )}
 

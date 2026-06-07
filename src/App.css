@@ -100,6 +100,96 @@
   padding: 0 0.25rem 0.25rem;
 }
 
+.fretboard-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 0.35rem;
+  min-width: min(100%, 640px);
+}
+
+.fretboard-layout--with-roles {
+  min-width: min(100%, 720px);
+}
+
+.fretboard-layout .fretboard {
+  flex: 1;
+  min-width: 0;
+}
+
+.string-roles-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  padding: 1.25rem 0.15rem 1.25rem 0;
+}
+
+.string-roles-rail .string-role-label {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(148, 163, 184, 0.55);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.string-roles-rail-spacer {
+  min-height: 32px;
+  margin-top: 0.5rem;
+}
+
+.tone-role-text--root {
+  color: #86efac;
+}
+
+.tone-role-text--thirdMajor {
+  color: #fcd34d;
+}
+
+.tone-role-text--thirdMinor {
+  color: #fdba74;
+}
+
+.tone-role-text--fifth {
+  color: #d8b4fe;
+}
+
+.tone-role-text--seventhMajor {
+  color: #67e8f9;
+}
+
+.tone-role-text--seventhMinor {
+  color: #7dd3fc;
+}
+
+.tone-role-text--ninthMajor {
+  color: #fda4af;
+}
+
+.tone-role-text--ninthMinor {
+  color: #f9a8d4;
+}
+
+.tone-role-text--eleventh {
+  color: #bef264;
+}
+
+.tone-role-text--thirteenthMajor {
+  color: #c4b5fd;
+}
+
+.tone-role-text--thirteenthMinor {
+  color: #f0abfc;
+}
+
+.tone-role-text--suspension {
+  color: #cbd5e1;
+}
+
 .fretboard {
   background: linear-gradient(120deg, #5c3417 0%, #2a1408 100%);
   border-radius: 24px;
@@ -114,7 +204,7 @@
 
 .string-row {
   display: grid;
-  grid-template-columns: repeat(16, minmax(36px, 1fr));
+  grid-template-columns: minmax(44px, 1.15fr) repeat(15, minmax(36px, 1fr));
   position: relative;
   height: 52px;
 }
@@ -146,18 +236,43 @@
 }
 
 .fret.nut {
-  background: rgba(255, 255, 255, 0.08);
-  border-right: 6px solid #d6d3ce;
+  background: transparent;
+  border-right: 5px solid #e8e4df;
   border-left: none;
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.fret.nut:hover {
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .string-label {
   position: absolute;
   left: 50%;
-  top: 8px;
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 1.5rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: rgba(248, 250, 252, 0.8);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-align: center;
+  color: #f8fafc;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  padding: 0.28rem 0.5rem;
+  line-height: 1.1;
+  pointer-events: none;
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.fret.nut:hover .string-label {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.35);
+  background: rgba(15, 23, 42, 0.85);
 }
 
 .note-dot {
@@ -180,13 +295,57 @@
   font-size: 0.85rem;
 }
 
-.fret.selected {
-  box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.6);
+.note-dot--root {
+  background: radial-gradient(circle at 30% 30%, #fff, #4ade80 70%);
+}
+
+.note-dot--thirdMajor {
+  background: radial-gradient(circle at 30% 30%, #fff, #fbbf24 70%);
+}
+
+.note-dot--thirdMinor {
+  background: radial-gradient(circle at 30% 30%, #fff, #fb923c 70%);
+}
+
+.note-dot--fifth {
+  background: radial-gradient(circle at 30% 30%, #fff, #c084fc 70%);
+}
+
+.note-dot--seventhMajor {
+  background: radial-gradient(circle at 30% 30%, #fff, #22d3ee 70%);
+}
+
+.note-dot--seventhMinor {
+  background: radial-gradient(circle at 30% 30%, #fff, #38bdf8 70%);
+}
+
+.note-dot--ninthMajor {
+  background: radial-gradient(circle at 30% 30%, #fff, #fb7185 70%);
+}
+
+.note-dot--ninthMinor {
+  background: radial-gradient(circle at 30% 30%, #fff, #f472b6 70%);
+}
+
+.note-dot--eleventh {
+  background: radial-gradient(circle at 30% 30%, #fff, #a3e635 70%);
+}
+
+.note-dot--thirteenthMajor {
+  background: radial-gradient(circle at 30% 30%, #fff, #a78bfa 70%);
+}
+
+.note-dot--thirteenthMinor {
+  background: radial-gradient(circle at 30% 30%, #fff, #e879f9 70%);
+}
+
+.note-dot--suspension {
+  background: radial-gradient(circle at 30% 30%, #fff, #94a3b8 70%);
 }
 
 .fret-markers-row {
   display: grid;
-  grid-template-columns: repeat(16, minmax(36px, 1fr));
+  grid-template-columns: minmax(44px, 1.15fr) repeat(15, minmax(36px, 1fr));
   margin-top: 0.5rem;
   min-height: 32px;
 }
@@ -315,6 +474,34 @@
 .alternate-fingering-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.tone-legend {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.65rem;
+}
+
+.tone-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tone-legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.35);
+}
+
+.tone-legend-label {
+  font-size: 0.75rem;
+  color: rgba(248, 250, 252, 0.75);
 }
 
 .active-notes {
@@ -616,12 +803,22 @@ select:focus {
   }
 
   .string-row {
-    grid-template-columns: repeat(16, minmax(32px, 1fr));
+    grid-template-columns: minmax(40px, 1.15fr) repeat(15, minmax(32px, 1fr));
     height: 46px;
   }
 
+  .string-label {
+    font-size: 0.72rem;
+    padding: 0.22rem 0.42rem;
+  }
+
+  .string-roles-rail .string-role-label {
+    height: 46px;
+    font-size: 0.58rem;
+  }
+
   .fret-markers-row {
-    grid-template-columns: repeat(16, minmax(32px, 1fr));
+    grid-template-columns: minmax(40px, 1.15fr) repeat(15, minmax(32px, 1fr));
   }
 
   .note-dot {
