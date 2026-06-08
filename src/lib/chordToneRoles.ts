@@ -181,6 +181,75 @@ const buildToneRoleInfo = (interval: string): ToneRoleInfo => {
   };
 };
 
+const KNOWN_INTERVALS = new Set(Object.keys(INTERVAL_TO_ROLE));
+
+const INTERVAL_ALIASES: Record<string, string> = {
+  "1A": "2m",
+};
+
+const normalizeIntervalName = (interval: string | null): string | null => {
+  if (!interval) return null;
+  if (KNOWN_INTERVALS.has(interval)) return interval;
+  const alias = INTERVAL_ALIASES[interval];
+  if (alias && KNOWN_INTERVALS.has(alias)) return alias;
+  return interval;
+};
+
+const COMPOUND_EXTENSION_INTERVALS = new Set([
+  "8P",
+  "9m",
+  "9M",
+  "11P",
+  "11A",
+  "13m",
+  "13M",
+]);
+
+const simpleIntervalFromSemitones = (semitones: number): string | null => {
+  const withinOctave = semitones % 12;
+  if (withinOctave === 0) {
+    return semitones === 0 ? "1P" : "8P";
+  }
+  const simple = Interval.fromSemitones(withinOctave);
+  if (simple && KNOWN_INTERVALS.has(simple)) {
+    return simple;
+  }
+  return null;
+};
+
+const intervalFromSemitones = (semitones: number): string | null => {
+  if (semitones < 0) return null;
+
+  const simpleKnown = simpleIntervalFromSemitones(semitones);
+
+  if (semitones <= 24) {
+    const direct = Interval.fromSemitones(semitones);
+    if (direct && KNOWN_INTERVALS.has(direct)) {
+      if (COMPOUND_EXTENSION_INTERVALS.has(direct)) {
+        return direct;
+      }
+      if (direct === "7M" || direct === "7m") {
+        return direct;
+      }
+      if (simpleKnown) {
+        return simpleKnown;
+      }
+      return direct;
+    }
+  }
+
+  if (simpleKnown) {
+    return simpleKnown;
+  }
+
+  if (semitones <= 24) {
+    const direct = Interval.fromSemitones(semitones);
+    return normalizeIntervalName(direct);
+  }
+
+  return null;
+};
+
 export const getIntervalFromRoot = (
   root: string,
   note: string,
@@ -195,16 +264,14 @@ export const getIntervalFromRoot = (
     Number.isFinite(noteMidi)
   ) {
     const semitones = noteMidi - rootMidi;
-    if (semitones >= 0 && semitones <= 24) {
-      const fromSemitones = Interval.fromSemitones(semitones);
-      if (fromSemitones && fromSemitones !== "") {
-        return fromSemitones;
-      }
+    const fromSemitones = intervalFromSemitones(semitones);
+    if (fromSemitones) {
+      return fromSemitones;
     }
   }
 
   const distance = Interval.distance(root, note);
-  return distance || null;
+  return normalizeIntervalName(distance || null);
 };
 
 export const getToneRoleInfoFromRoot = (

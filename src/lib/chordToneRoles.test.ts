@@ -83,6 +83,49 @@ describe("getToneRoleInfoFromRoot", () => {
     expect(items).toHaveLength(1);
     expect(items[0]?.shortLabel).toBe("Root");
   });
+
+  it("labels compound fifth above bass root as 5th, not Ext", () => {
+    // Gmaj7 voicing 3,x,4,4,3,x — D on B string is a 12th above bass G
+    const info = getToneRoleInfoFromRoot("G", "D", {
+      rootMidi: 43,
+      noteMidi: 62,
+    });
+    expect(info?.role).toBe("fifth");
+    expect(info?.shortLabel).toBe("5th");
+  });
+
+  it("labels G# above bass G as b2 for wide Gmaj7 voicing 3,x,4,4,3,4", () => {
+    const gSharp = getToneRoleInfoFromRoot("G", "G#", {
+      rootMidi: 43,
+      noteMidi: 68,
+    });
+    expect(gSharp?.role).toBe("secondMinor");
+    expect(gSharp?.shortLabel).toBe("b2");
+
+    const voicing = [
+      { note: "G", midi: 43 },
+      { note: "F#", midi: 54 },
+      { note: "B", midi: 59 },
+      { note: "D", midi: 62 },
+      { note: "G#", midi: 68 },
+    ];
+    const legend = legendRolesForNotes("G", voicing, 43);
+    expect(legend.map((item) => item.shortLabel)).toEqual([
+      "Root",
+      "b2",
+      "Maj 3",
+      "5th",
+      "Maj 7",
+    ]);
+    voicing.forEach((entry) => {
+      expect(
+        getToneRoleInfoFromRoot("G", entry.note, {
+          rootMidi: 43,
+          noteMidi: entry.midi,
+        })?.shortLabel
+      ).not.toBe("Ext");
+    });
+  });
 });
 
 describe("buildChordToneRoleMap", () => {
