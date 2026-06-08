@@ -144,15 +144,15 @@
 }
 
 .tone-role-text--secondMajor {
-  color: #fde68a;
+  color: #fef9c3;
 }
 
 .tone-role-text--secondMinor {
-  color: #fcd34d;
+  color: #facc15;
 }
 
 .tone-role-text--thirdMajor {
-  color: #fcd34d;
+  color: #fbbf24;
 }
 
 .tone-role-text--thirdMinor {
@@ -160,7 +160,7 @@
 }
 
 .tone-role-text--fourth {
-  color: #cbd5e1;
+  color: #94a3b8;
 }
 
 .tone-role-text--fifth {
@@ -168,11 +168,11 @@
 }
 
 .tone-role-text--sixthMinor {
-  color: #f9a8d4;
+  color: #e879f9;
 }
 
 .tone-role-text--sixthMajor {
-  color: #fbcfe8;
+  color: #f9a8d4;
 }
 
 .tone-role-text--seventhMajor {
@@ -180,15 +180,15 @@
 }
 
 .tone-role-text--seventhMinor {
-  color: #7dd3fc;
+  color: #38bdf8;
 }
 
 .tone-role-text--ninthMajor {
-  color: #fda4af;
+  color: #fb7185;
 }
 
 .tone-role-text--ninthMinor {
-  color: #f472b6;
+  color: #db2777;
 }
 
 .tone-role-text--eleventh {
@@ -204,11 +204,11 @@
 }
 
 .tone-role-text--suspension {
-  color: #cbd5e1;
+  color: #94a3b8;
 }
 
 .tone-role-text--extension {
-  color: #94a3b8;
+  color: #64748b;
 }
 
 .fretboard {
@@ -325,19 +325,19 @@
 }
 
 .note-dot--secondMinor {
-  background: radial-gradient(circle at 30% 30%, #fff, #facc15 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #eab308 70%);
 }
 
 .note-dot--thirdMajor {
-  background: radial-gradient(circle at 30% 30%, #fff, #fbbf24 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #f59e0b 70%);
 }
 
 .note-dot--thirdMinor {
-  background: radial-gradient(circle at 30% 30%, #fff, #fb923c 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #ea580c 70%);
 }
 
 .note-dot--fourth {
-  background: radial-gradient(circle at 30% 30%, #fff, #cbd5e1 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #94a3b8 70%);
 }
 
 .note-dot--fifth {
@@ -345,47 +345,47 @@
 }
 
 .note-dot--sixthMinor {
-  background: radial-gradient(circle at 30% 30%, #fff, #f472b6 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #d946ef 70%);
 }
 
 .note-dot--sixthMajor {
-  background: radial-gradient(circle at 30% 30%, #fff, #f9a8d4 70%);
-}
-
-.note-dot--seventhMajor {
-  background: radial-gradient(circle at 30% 30%, #fff, #22d3ee 70%);
-}
-
-.note-dot--seventhMinor {
-  background: radial-gradient(circle at 30% 30%, #fff, #38bdf8 70%);
-}
-
-.note-dot--ninthMajor {
-  background: radial-gradient(circle at 30% 30%, #fff, #fb7185 70%);
-}
-
-.note-dot--ninthMinor {
   background: radial-gradient(circle at 30% 30%, #fff, #f472b6 70%);
 }
 
+.note-dot--seventhMajor {
+  background: radial-gradient(circle at 30% 30%, #fff, #06b6d4 70%);
+}
+
+.note-dot--seventhMinor {
+  background: radial-gradient(circle at 30% 30%, #fff, #0284c7 70%);
+}
+
+.note-dot--ninthMajor {
+  background: radial-gradient(circle at 30% 30%, #fff, #f43f5e 70%);
+}
+
+.note-dot--ninthMinor {
+  background: radial-gradient(circle at 30% 30%, #fff, #be185d 70%);
+}
+
 .note-dot--eleventh {
-  background: radial-gradient(circle at 30% 30%, #fff, #a3e635 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #84cc16 70%);
 }
 
 .note-dot--thirteenthMajor {
-  background: radial-gradient(circle at 30% 30%, #fff, #a78bfa 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #8b5cf6 70%);
 }
 
 .note-dot--thirteenthMinor {
-  background: radial-gradient(circle at 30% 30%, #fff, #e879f9 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #c026d3 70%);
 }
 
 .note-dot--suspension {
-  background: radial-gradient(circle at 30% 30%, #fff, #94a3b8 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #64748b 70%);
 }
 
 .note-dot--extension {
-  background: radial-gradient(circle at 30% 30%, #fff, #64748b 70%);
+  background: radial-gradient(circle at 30% 30%, #fff, #475569 70%);
 }
 
 .fret-markers-row {

@@ -249,16 +249,24 @@ export const legendRolesForNotes = (
   root: string,
   notes: Array<{ note: string; midi?: number | null }>,
   rootMidi?: number | null
-): ChordToneRole[] => {
-  const present = new Set<ChordToneRole>();
+): ToneRoleInfo[] => {
+  const byLabel = new Map<string, ToneRoleInfo>();
   notes.forEach((entry) => {
     const info = getToneRoleInfoFromRoot(root, entry.note, {
       rootMidi,
       noteMidi: entry.midi,
     });
-    if (info) present.add(info.role);
+    if (info && !byLabel.has(info.shortLabel)) {
+      byLabel.set(info.shortLabel, info);
+    }
   });
-  return LEGEND_ORDER.filter((role) => present.has(role));
+
+  return [...byLabel.values()].sort((a, b) => {
+    const orderA = LEGEND_ORDER.indexOf(a.role);
+    const orderB = LEGEND_ORDER.indexOf(b.role);
+    if (orderA !== orderB) return orderA - orderB;
+    return a.shortLabel.localeCompare(b.shortLabel);
+  });
 };
 
 export const getRoleForNote = (

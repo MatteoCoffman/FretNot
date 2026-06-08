@@ -53,7 +53,7 @@ describe("getToneRoleInfoFromRoot", () => {
       { note: "D", midi: 62 },
     ];
     const roles = legendRolesForNotes("C", notes, 48);
-    expect(roles).toContain("ninthMajor");
+    expect(roles.map((item) => item.role)).toContain("ninthMajor");
     notes.forEach((entry) => {
       expect(
         getToneRoleInfoFromRoot("C", entry.note, {
@@ -62,6 +62,26 @@ describe("getToneRoleInfoFromRoot", () => {
         })?.role
       ).toBeTruthy();
     });
+  });
+
+  it("preserves b5 label in legend instead of generic 5th", () => {
+    const items = legendRolesForNotes("C", [{ note: "Gb", midi: 54 }], 48);
+    expect(items).toHaveLength(1);
+    expect(items[0]?.shortLabel).toBe("b5");
+    expect(items[0]?.role).toBe("fifth");
+  });
+
+  it("dedupes duplicate roots in legend", () => {
+    const items = legendRolesForNotes(
+      "C",
+      [
+        { note: "C", midi: 48 },
+        { note: "C", midi: 60 },
+      ],
+      48
+    );
+    expect(items).toHaveLength(1);
+    expect(items[0]?.shortLabel).toBe("Root");
   });
 });
 

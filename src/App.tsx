@@ -14,7 +14,6 @@ import {
   getToneRoleInfoFromRoot,
   legendRolesForNotes,
   parseChordRoot,
-  TONE_ROLE_LABELS,
   toneRoleClassName,
   toneRoleTextClassName,
 } from "./lib/chordToneRoles";
@@ -725,7 +724,7 @@ const detectedChords = useMemo(() => {
     return Note.midi(`${detectedChordRoot}2`) ?? Note.midi(detectedChordRoot);
   }, [detectedChordRoot, selectedNotes]);
 
-  const toneLegendRoles = useMemo(() => {
+  const toneLegendItems = useMemo(() => {
     if (!detectedChordRoot) return [];
     return legendRolesForNotes(
       detectedChordRoot,
@@ -1121,16 +1120,16 @@ const detectedChords = useMemo(() => {
                 >
                   Alternate fingering
                 </button>
-                {toneLegendRoles.length > 0 && (
+                {toneLegendItems.length > 0 && (
                   <ul className="tone-legend" aria-label="Chord tone colors">
-                    {toneLegendRoles.map((role) => (
-                      <li key={role} className="tone-legend-item">
+                    {toneLegendItems.map((item) => (
+                      <li key={item.shortLabel} className="tone-legend-item">
                         <span
-                          className={`tone-legend-swatch ${toneRoleClassName(role)}`}
+                          className={`tone-legend-swatch ${toneRoleClassName(item.role)}`}
                           aria-hidden="true"
                         />
                         <span className="tone-legend-label">
-                          {TONE_ROLE_LABELS[role]}
+                          {item.shortLabel}
                         </span>
                       </li>
                     ))}
