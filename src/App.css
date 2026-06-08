@@ -104,10 +104,6 @@
   display: flex;
   align-items: stretch;
   gap: 0.35rem;
-  min-width: min(100%, 640px);
-}
-
-.fretboard-layout--with-roles {
   min-width: min(100%, 720px);
 }
 
@@ -120,7 +116,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  flex-shrink: 0;
+  flex: 0 0 72px;
+  width: 72px;
   padding: 1.25rem 0.15rem 1.25rem 0;
 }
 
@@ -146,6 +143,14 @@
   color: #86efac;
 }
 
+.tone-role-text--secondMajor {
+  color: #fde68a;
+}
+
+.tone-role-text--secondMinor {
+  color: #fcd34d;
+}
+
 .tone-role-text--thirdMajor {
   color: #fcd34d;
 }
@@ -154,8 +159,20 @@
   color: #fdba74;
 }
 
+.tone-role-text--fourth {
+  color: #cbd5e1;
+}
+
 .tone-role-text--fifth {
   color: #d8b4fe;
+}
+
+.tone-role-text--sixthMinor {
+  color: #f9a8d4;
+}
+
+.tone-role-text--sixthMajor {
+  color: #fbcfe8;
 }
 
 .tone-role-text--seventhMajor {
@@ -171,7 +188,7 @@
 }
 
 .tone-role-text--ninthMinor {
-  color: #f9a8d4;
+  color: #f472b6;
 }
 
 .tone-role-text--eleventh {
@@ -188,6 +205,10 @@
 
 .tone-role-text--suspension {
   color: #cbd5e1;
+}
+
+.tone-role-text--extension {
+  color: #94a3b8;
 }
 
 .fretboard {
@@ -299,6 +320,14 @@
   background: radial-gradient(circle at 30% 30%, #fff, #4ade80 70%);
 }
 
+.note-dot--secondMajor {
+  background: radial-gradient(circle at 30% 30%, #fff, #fde047 70%);
+}
+
+.note-dot--secondMinor {
+  background: radial-gradient(circle at 30% 30%, #fff, #facc15 70%);
+}
+
 .note-dot--thirdMajor {
   background: radial-gradient(circle at 30% 30%, #fff, #fbbf24 70%);
 }
@@ -307,8 +336,20 @@
   background: radial-gradient(circle at 30% 30%, #fff, #fb923c 70%);
 }
 
+.note-dot--fourth {
+  background: radial-gradient(circle at 30% 30%, #fff, #cbd5e1 70%);
+}
+
 .note-dot--fifth {
   background: radial-gradient(circle at 30% 30%, #fff, #c084fc 70%);
+}
+
+.note-dot--sixthMinor {
+  background: radial-gradient(circle at 30% 30%, #fff, #f472b6 70%);
+}
+
+.note-dot--sixthMajor {
+  background: radial-gradient(circle at 30% 30%, #fff, #f9a8d4 70%);
 }
 
 .note-dot--seventhMajor {
@@ -341,6 +382,10 @@
 
 .note-dot--suspension {
   background: radial-gradient(circle at 30% 30%, #fff, #94a3b8 70%);
+}
+
+.note-dot--extension {
+  background: radial-gradient(circle at 30% 30%, #fff, #64748b 70%);
 }
 
 .fret-markers-row {
@@ -810,6 +855,11 @@ select:focus {
   .string-label {
     font-size: 0.72rem;
     padding: 0.22rem 0.42rem;
+  }
+
+  .string-roles-rail {
+    flex: 0 0 58px;
+    width: 58px;
   }
 
   .string-roles-rail .string-role-label {

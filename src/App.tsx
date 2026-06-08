@@ -11,11 +11,10 @@ import {
 import { AI_UNAVAILABLE_MESSAGE } from "./lib/gemini";
 import { formatSlashLabel } from "./lib/chordDetection";
 import {
-  buildChordToneRoleMap,
-  getRoleForNote,
-  legendRolesForMap,
+  getToneRoleInfoFromRoot,
+  legendRolesForNotes,
+  parseChordRoot,
   TONE_ROLE_LABELS,
-  TONE_ROLE_SHORT_LABELS,
   toneRoleClassName,
   toneRoleTextClassName,
 } from "./lib/chordToneRoles";
@@ -27,6 +26,7 @@ import {
   layoutKey,
   normalizeNote,
   pickVoicing,
+  pitchClass,
 } from "./lib/voicing";
 
 const NOTE_SEQUENCE = [
@@ -704,18 +704,44 @@ const detectedChords = useMemo(() => {
     return deduped;
   }, [activeNotes, uniqueNotes, lowestPitchNote, customCandidates]);
 
-  const chordToneRoles = useMemo(() => {
+  const detectedChordRoot = useMemo(() => {
     const primarySymbol = voicingAnchor?.symbol ?? detectedChords[0] ?? null;
-    if (!primarySymbol) return new Map();
-    return buildChordToneRoleMap(primarySymbol);
+    if (!primarySymbol) return null;
+    return parseChordRoot(primarySymbol);
   }, [voicingAnchor, detectedChords]);
 
-  const toneLegendRoles = useMemo(
-    () => legendRolesForMap(chordToneRoles),
-    [chordToneRoles]
-  );
+  const chordRootReferenceMidi = useMemo(() => {
+    if (!detectedChordRoot) return null;
+    const rootPc = pitchClass(detectedChordRoot);
+    if (rootPc === null) return null;
 
-  const showStringRoles = chordToneRoles.size > 0;
+    const rootOnBoard = selectedNotes.filter(
+      (note) => pitchClass(note.note) === rootPc
+    );
+    if (rootOnBoard.length > 0) {
+      return Math.min(...rootOnBoard.map((note) => note.midi));
+    }
+
+    return Note.midi(`${detectedChordRoot}2`) ?? Note.midi(detectedChordRoot);
+  }, [detectedChordRoot, selectedNotes]);
+
+  const toneLegendRoles = useMemo(() => {
+    if (!detectedChordRoot) return [];
+    return legendRolesForNotes(
+      detectedChordRoot,
+      selectedNotes.map((item) => ({ note: item.note, midi: item.midi })),
+      chordRootReferenceMidi
+    );
+  }, [detectedChordRoot, selectedNotes, chordRootReferenceMidi]);
+
+  const getBoardToneInfo = (stringIdx: number, note: string) => {
+    if (!detectedChordRoot) return null;
+    const entry = selectedNotes.find((item) => item.stringIndex === stringIdx);
+    return getToneRoleInfoFromRoot(detectedChordRoot, note, {
+      rootMidi: chordRootReferenceMidi,
+      noteMidi: entry?.midi,
+    });
+  };
 
   const hasAiKey = import.meta.env.VITE_AI_DISABLED !== "true";
 
@@ -930,11 +956,7 @@ const detectedChords = useMemo(() => {
       <div className="workspace">
         <section className="fretboard-card">
           <div className="fretboard-scroll">
-            <div
-              className={`fretboard-layout${
-                showStringRoles ? " fretboard-layout--with-roles" : ""
-              }`}
-            >
+            <div className="fretboard-layout">
               <div className="fretboard">
                 {STRINGS.map((stringMeta, stringIdx) => (
                   <div key={stringMeta.id} className="string-row">
@@ -943,9 +965,9 @@ const detectedChords = useMemo(() => {
                       const noteLabel = isSelected
                         ? getNoteName(stringIdx, fretIdx)
                         : null;
-                      const toneRole = noteLabel
-                        ? getRoleForNote(chordToneRoles, noteLabel)
-                        : undefined;
+                      const toneInfo = noteLabel
+                        ? getBoardToneInfo(stringIdx, noteLabel)
+                        : null;
                       const fretClassNames = [
                         "fret",
                         fretIdx === 0 ? "nut" : "",
@@ -973,8 +995,8 @@ const detectedChords = useMemo(() => {
                           {isSelected && (
                             <span
                               className={
-                                toneRole
-                                  ? `note-dot ${toneRoleClassName(toneRole)}`
+                                toneInfo
+                                  ? `note-dot ${toneRoleClassName(toneInfo.role)}`
                                   : "note-dot"
                               }
                             >
@@ -1000,42 +1022,37 @@ const detectedChords = useMemo(() => {
                   ))}
                 </div>
               </div>
-              {showStringRoles && (
-                <aside
-                  className="string-roles-rail"
-                  aria-label="String tone roles"
-                >
-                  {STRINGS.map((stringMeta, stringIdx) => {
-                    const selectedFret = selectedFrets[stringIdx];
-                    const stringNoteLabel =
-                      selectedFret >= 0
-                        ? getNoteName(stringIdx, selectedFret)
-                        : null;
-                    const stringRole = stringNoteLabel
-                      ? getRoleForNote(chordToneRoles, stringNoteLabel)
-                      : undefined;
+              <aside className="string-roles-rail" aria-label="String tone roles">
+                {STRINGS.map((stringMeta, stringIdx) => {
+                  const selectedFret = selectedFrets[stringIdx];
+                  const stringNoteLabel =
+                    selectedFret >= 0
+                      ? getNoteName(stringIdx, selectedFret)
+                      : null;
+                  const toneInfo = stringNoteLabel
+                    ? getBoardToneInfo(stringIdx, stringNoteLabel)
+                    : null;
 
-                    return (
-                      <div
-                        key={`role-${stringMeta.id}`}
-                        className={`string-role-label${
-                          stringRole
-                            ? ` ${toneRoleTextClassName(stringRole)}`
-                            : ""
-                        }`}
-                        aria-label={
-                          stringRole
-                            ? `${stringMeta.label} string: ${TONE_ROLE_LABELS[stringRole]}`
-                            : undefined
-                        }
-                      >
-                        {stringRole ? TONE_ROLE_SHORT_LABELS[stringRole] : ""}
-                      </div>
-                    );
-                  })}
-                  <div className="string-roles-rail-spacer" aria-hidden="true" />
-                </aside>
-              )}
+                  return (
+                    <div
+                      key={`role-${stringMeta.id}`}
+                      className={`string-role-label${
+                        toneInfo
+                          ? ` ${toneRoleTextClassName(toneInfo.role)}`
+                          : ""
+                      }`}
+                      aria-label={
+                        toneInfo
+                          ? `${stringMeta.label} string: ${toneInfo.label}`
+                          : undefined
+                      }
+                    >
+                      {toneInfo?.shortLabel ?? ""}
+                    </div>
+                  );
+                })}
+                <div className="string-roles-rail-spacer" aria-hidden="true" />
+              </aside>
             </div>
           </div>
 

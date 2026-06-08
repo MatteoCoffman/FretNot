@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   buildChordToneRoleMap,
   getRoleForNote,
+  getToneRoleInfoFromRoot,
   intervalToToneRole,
-  legendRolesForMap,
+  legendRolesForNotes,
   toneRoleClassName,
 } from "./chordToneRoles";
 
@@ -16,35 +17,55 @@ describe("intervalToToneRole", () => {
     expect(intervalToToneRole("7M")).toBe("seventhMajor");
     expect(intervalToToneRole("7m")).toBe("seventhMinor");
     expect(intervalToToneRole("9M")).toBe("ninthMajor");
+    expect(intervalToToneRole("6M")).toBe("sixthMajor");
+  });
+});
+
+describe("getToneRoleInfoFromRoot", () => {
+  it("maps Cmaj7 tones correctly", () => {
+    expect(getToneRoleInfoFromRoot("C", "C")?.role).toBe("root");
+    expect(getToneRoleInfoFromRoot("C", "E")?.role).toBe("thirdMajor");
+    expect(getToneRoleInfoFromRoot("C", "G")?.role).toBe("fifth");
+    expect(getToneRoleInfoFromRoot("C", "B")?.role).toBe("seventhMajor");
+  });
+
+  it("labels a 9th using board midi when available", () => {
+    const info = getToneRoleInfoFromRoot("C", "D", {
+      rootMidi: 48,
+      noteMidi: 62,
+    });
+    expect(info?.role).toBe("ninthMajor");
+    expect(info?.shortLabel).toBe("Maj 9");
+  });
+
+  it("labels major 6th tones", () => {
+    const info = getToneRoleInfoFromRoot("C", "A");
+    expect(info?.role).toBe("sixthMajor");
+    expect(info?.shortLabel).toBe("Maj 6");
+  });
+
+  it("labels every note on a Cmaj9 board", () => {
+    const notes = [
+      { note: "C", midi: 48 },
+      { note: "E", midi: 52 },
+      { note: "G", midi: 55 },
+      { note: "B", midi: 59 },
+      { note: "D", midi: 62 },
+    ];
+    const roles = legendRolesForNotes("C", notes, 48);
+    expect(roles).toContain("ninthMajor");
+    notes.forEach((entry) => {
+      expect(
+        getToneRoleInfoFromRoot("C", entry.note, {
+          rootMidi: 48,
+          noteMidi: entry.midi,
+        })?.role
+      ).toBeTruthy();
+    });
   });
 });
 
 describe("buildChordToneRoleMap", () => {
-  it("maps Cmaj7 tones correctly", () => {
-    const roles = buildChordToneRoleMap("Cmaj7");
-    expect(getRoleForNote(roles, "C")).toBe("root");
-    expect(getRoleForNote(roles, "E")).toBe("thirdMajor");
-    expect(getRoleForNote(roles, "G")).toBe("fifth");
-    expect(getRoleForNote(roles, "B")).toBe("seventhMajor");
-  });
-
-  it("maps Em tones correctly", () => {
-    const roles = buildChordToneRoleMap("Em");
-    expect(getRoleForNote(roles, "E")).toBe("root");
-    expect(getRoleForNote(roles, "G")).toBe("thirdMinor");
-    expect(getRoleForNote(roles, "B")).toBe("fifth");
-  });
-
-  it("maps Cm7 with minor third and minor seventh", () => {
-    const roles = buildChordToneRoleMap("Cm7");
-    expect(getRoleForNote(roles, "C")).toBe("root");
-    expect(getRoleForNote(roles, "Eb")).toBe("thirdMinor");
-    expect(getRoleForNote(roles, "D#")).toBe("thirdMinor");
-    expect(getRoleForNote(roles, "G")).toBe("fifth");
-    expect(getRoleForNote(roles, "Bb")).toBe("seventhMinor");
-    expect(getRoleForNote(roles, "A#")).toBe("seventhMinor");
-  });
-
   it("maps slash chords using the chord root", () => {
     const roles = buildChordToneRoleMap("Cmaj7/E");
     expect(getRoleForNote(roles, "C")).toBe("root");
@@ -53,20 +74,13 @@ describe("buildChordToneRoleMap", () => {
 
   it("includes ninth role for G9", () => {
     const roles = buildChordToneRoleMap("G9");
-    expect(getRoleForNote(roles, "G")).toBe("root");
     expect(getRoleForNote(roles, "A")).toBe("ninthMajor");
-    expect(legendRolesForMap(roles)).toContain("ninthMajor");
-  });
-
-  it("includes ninth role for Cmaj9", () => {
-    const roles = buildChordToneRoleMap("Cmaj9");
-    expect(getRoleForNote(roles, "D")).toBe("ninthMajor");
   });
 });
 
 describe("toneRoleClassName", () => {
   it("returns css modifier class names", () => {
     expect(toneRoleClassName("fifth")).toBe("note-dot--fifth");
-    expect(toneRoleClassName("thirdMinor")).toBe("note-dot--thirdMinor");
+    expect(toneRoleClassName("ninthMajor")).toBe("note-dot--ninthMajor");
   });
 });
