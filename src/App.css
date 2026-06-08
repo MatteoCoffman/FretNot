@@ -732,6 +732,10 @@ select:focus {
 }
 
 .ai-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
   background: linear-gradient(120deg, #2f8f57, #58c272);
   border: none;
   color: #0b1b12;
@@ -778,13 +782,18 @@ select:focus {
 }
 
 .progression-panel {
-  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(88, 194, 114, 0.12);
 }
 
 .progression-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
 }
 
@@ -796,11 +805,19 @@ select:focus {
   color: #9fb7a4;
 }
 
+.progression-header .muted {
+  margin-top: 0.25rem;
+  font-size: 0.82rem;
+}
+
 .progression-chips {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
-  margin: 0.65rem 0;
+}
+
+.progression-suggest-btn {
+  align-self: flex-start;
 }
 
 .chip {

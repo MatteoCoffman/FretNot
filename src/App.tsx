@@ -1354,7 +1354,7 @@ const detectedChords = useMemo(() => {
                 )}
                 <button
                   type="button"
-                  className="ai-btn"
+                  className="ai-btn progression-suggest-btn"
                   onClick={handleSuggestNext}
                   disabled={!hasAiKey || progression.length === 0}
                 >
